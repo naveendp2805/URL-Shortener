@@ -21,16 +21,18 @@ public class UrlService {
 
     private final UrlRepository urlRepository;
     private final UrlMapper urlMapper;
+    private final ClickEventProducer clickEventProducer;
 
     private final SnowflakeGenerator snowflakeGenerator;
 
     private final RedisService redisService;
 
-    public UrlService(UrlRepository urlRepository, UrlMapper urlMapper, RedisService redisService) {
+    public UrlService(UrlRepository urlRepository, UrlMapper urlMapper, RedisService redisService, ClickEventProducer clickEventProducer) {
 
         this.urlRepository = urlRepository;
         this.urlMapper = urlMapper;
         this.redisService = redisService;
+        this.clickEventProducer = clickEventProducer;
 
         long MACHINE_ID = Long.parseLong(System.getenv("MACHINE_ID"));
         this.snowflakeGenerator = new SnowflakeGenerator(MACHINE_ID);
@@ -66,24 +68,24 @@ public class UrlService {
         String redisUrl = redisService.get(shortCode);
 
         if(redisUrl != null) {
-            urlRepository.incrementClickAnalytics(shortCode);
+            clickEventProducer.publish(shortCode);
 
             return redisUrl;
         }
 
-        Url url = urlRepository.findOriginalUrlByShortCode(shortCode)
+        String originalUrl = urlRepository.findOriginalUrlByShortCode(shortCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Url not found!!"));
 
-        redisService.save(url.getShortCode(), url.getOriginalUrl());
+        redisService.save(shortCode, originalUrl);
 
-        urlRepository.incrementClickAnalytics(shortCode);
+        clickEventProducer.publish(shortCode);
 
-        return url.getOriginalUrl();
+        return originalUrl;
     }
 
     public ClickAnalyticsResponse getAnalytics(String shortCode) {
 
-        Url url = urlRepository.findOriginalUrlByShortCode(shortCode)
+        Url url = urlRepository.findByShortCode(shortCode)
                 .orElseThrow(() -> new ResourceNotFoundException("URL not found!!"));
 
         return ClickAnalyticsResponse.builder()

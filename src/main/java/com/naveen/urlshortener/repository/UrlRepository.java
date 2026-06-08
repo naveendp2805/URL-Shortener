@@ -12,12 +12,14 @@ public interface UrlRepository extends JpaRepository<Url, Long> {
 
     Optional<Url> findByOriginalUrl(String originalUrl);
 
+    Optional<Url> findByShortCode(String shortCode);
+
     @Query("""
-       SELECT s
+       SELECT s.originalUrl
        FROM Url s
        WHERE s.shortCode = :shortCode
        """)
-    Optional<Url> findOriginalUrlByShortCode(@Param("shortCode") String shortCode);
+    Optional<String> findOriginalUrlByShortCode(@Param("shortCode") String shortCode);
 
     @Modifying
     @Query("""
