@@ -13,7 +13,7 @@ public interface UrlRepository extends JpaRepository<Url, Long> {
     Optional<Url> findByOriginalUrl(String originalUrl);
 
     @Query("""
-       SELECT s.originalUrl
+       SELECT s
        FROM Url s
        WHERE s.shortCode = :shortCode
        """)

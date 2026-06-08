@@ -20,15 +20,17 @@ import java.util.Optional;
 public class UrlService {
 
     private final UrlRepository urlRepository;
-
     private final UrlMapper urlMapper;
 
     private final SnowflakeGenerator snowflakeGenerator;
 
-    public UrlService(UrlRepository urlRepository, UrlMapper urlMapper) {
+    private final RedisService redisService;
+
+    public UrlService(UrlRepository urlRepository, UrlMapper urlMapper, RedisService redisService) {
 
         this.urlRepository = urlRepository;
         this.urlMapper = urlMapper;
+        this.redisService = redisService;
 
         long MACHINE_ID = Long.parseLong(System.getenv("MACHINE_ID"));
         this.snowflakeGenerator = new SnowflakeGenerator(MACHINE_ID);
@@ -61,8 +63,18 @@ public class UrlService {
     @Transactional
     public String getOriginalUrl(String shortCode) {
 
+        String redisUrl = redisService.get(shortCode);
+
+        if(redisUrl != null) {
+            urlRepository.incrementClickAnalytics(shortCode);
+
+            return redisUrl;
+        }
+
         Url url = urlRepository.findOriginalUrlByShortCode(shortCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Url not found!!"));
+
+        redisService.save(url.getShortCode(), url.getOriginalUrl());
 
         urlRepository.incrementClickAnalytics(shortCode);
 
