@@ -26,4 +26,9 @@ public class Url {
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
+
+    @Column(nullable = false)
+    private Long clickCount;
+
+    private LocalDateTime lastAccessedAt;
 }

@@ -1,5 +1,6 @@
 package com.naveen.urlshortener.controller;
 
+import com.naveen.urlshortener.dto.ClickAnalyticsResponse;
 import com.naveen.urlshortener.dto.CreateShortUrlRequest;
 import com.naveen.urlshortener.dto.ShortUrlResponse;
 import com.naveen.urlshortener.service.UrlService;
@@ -23,7 +24,7 @@ public class UrlController {
         return ResponseEntity.status(200).body(urlService.generateShortUrl(request));
     }
 
-    @GetMapping("/api/url/{shortCode}")
+    @GetMapping("/{shortCode}")
     public ResponseEntity<Void> getOriginalUrl(@PathVariable String shortCode) {
 
         String originalUrl = urlService.getOriginalUrl(shortCode);
@@ -36,5 +37,10 @@ public class UrlController {
                 .status(HttpStatus.FOUND)
                 .headers(httpHeaders)
                 .build();
+    }
+
+    @GetMapping("/{shortCode}/analytics")
+    public ResponseEntity<ClickAnalyticsResponse> getAnalytics(@PathVariable String shortCode) {
+        return ResponseEntity.ok(urlService.getAnalytics(shortCode));
     }
 }

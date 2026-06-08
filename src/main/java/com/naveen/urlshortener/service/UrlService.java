@@ -1,5 +1,6 @@
 package com.naveen.urlshortener.service;
 
+import com.naveen.urlshortener.dto.ClickAnalyticsResponse;
 import com.naveen.urlshortener.dto.CreateShortUrlRequest;
 import com.naveen.urlshortener.dto.ShortUrlResponse;
 import com.naveen.urlshortener.dto.UrlMapper;
@@ -49,6 +50,7 @@ public class UrlService {
                 .originalUrl(longUrl)
                 .shortCode(shortCode)
                 .createdAt(LocalDateTime.now())
+                .clickCount(0L)
                 .build();
 
         urlRepository.save(url);
@@ -56,11 +58,29 @@ public class UrlService {
         return urlMapper.toDto(url);
     }
 
+    @Transactional
     public String getOriginalUrl(String shortCode) {
 
         Url url = urlRepository.findByShortCode(shortCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Url not found!!"));
 
+        url.setClickCount(url.getClickCount() + 1);
+        url.setLastAccessedAt(LocalDateTime.now());
+
         return url.getOriginalUrl();
+    }
+
+    public ClickAnalyticsResponse getAnalytics(String shortCode) {
+
+        Url url = urlRepository.findByShortCode(shortCode)
+                .orElseThrow(() -> new ResourceNotFoundException("URL not found!!"));
+
+        return ClickAnalyticsResponse.builder()
+                .shortCode(shortCode)
+                .originalUrl(url.getOriginalUrl())
+                .clickCount(url.getClickCount())
+                .createdAt(url.getCreatedAt())
+                .lastAccessedAt(url.getLastAccessedAt())
+                .build();
     }
 }
