@@ -62,7 +62,6 @@ public class UrlService {
         return urlMapper.toDto(url);
     }
 
-    @Transactional
     public String getOriginalUrl(String shortCode) {
 
         String redisUrl = redisService.get(shortCode);
