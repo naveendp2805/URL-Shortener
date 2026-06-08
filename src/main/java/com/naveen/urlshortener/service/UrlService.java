@@ -61,18 +61,17 @@ public class UrlService {
     @Transactional
     public String getOriginalUrl(String shortCode) {
 
-        Url url = urlRepository.findByShortCode(shortCode)
+        Url url = urlRepository.findOriginalUrlByShortCode(shortCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Url not found!!"));
 
-        url.setClickCount(url.getClickCount() + 1);
-        url.setLastAccessedAt(LocalDateTime.now());
+        urlRepository.incrementClickAnalytics(shortCode);
 
         return url.getOriginalUrl();
     }
 
     public ClickAnalyticsResponse getAnalytics(String shortCode) {
 
-        Url url = urlRepository.findByShortCode(shortCode)
+        Url url = urlRepository.findOriginalUrlByShortCode(shortCode)
                 .orElseThrow(() -> new ResourceNotFoundException("URL not found!!"));
 
         return ClickAnalyticsResponse.builder()
