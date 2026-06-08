@@ -1,18 +1,19 @@
 package com.naveen.urlshortener.service;
 
-import com.naveen.urlshortener.dto.ClickAnalyticsResponse;
-import com.naveen.urlshortener.dto.CreateShortUrlRequest;
-import com.naveen.urlshortener.dto.ShortUrlResponse;
-import com.naveen.urlshortener.dto.UrlMapper;
+import com.naveen.urlshortener.dto.*;
 import com.naveen.urlshortener.exception.ResourceNotFoundException;
+import com.naveen.urlshortener.model.ClickAnalytics;
 import com.naveen.urlshortener.model.Url;
+import com.naveen.urlshortener.repository.ClickAnalyticsRepository;
 import com.naveen.urlshortener.repository.UrlRepository;
 import com.naveen.urlshortener.util.Base62Encoder;
 import com.naveen.urlshortener.util.SnowflakeGenerator;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -20,6 +21,8 @@ import java.util.Optional;
 public class UrlService {
 
     private final UrlRepository urlRepository;
+    private final ClickAnalyticsRepository clickAnalyticsRepository;
+
     private final UrlMapper urlMapper;
     private final ClickEventProducer clickEventProducer;
 
@@ -27,9 +30,10 @@ public class UrlService {
 
     private final RedisService redisService;
 
-    public UrlService(UrlRepository urlRepository, UrlMapper urlMapper, RedisService redisService, ClickEventProducer clickEventProducer) {
+    public UrlService(UrlRepository urlRepository, UrlMapper urlMapper, RedisService redisService, ClickEventProducer clickEventProducer, ClickAnalyticsRepository clickAnalyticsRepository) {
 
         this.urlRepository = urlRepository;
+        this.clickAnalyticsRepository = clickAnalyticsRepository;
         this.urlMapper = urlMapper;
         this.redisService = redisService;
         this.clickEventProducer = clickEventProducer;
@@ -62,12 +66,15 @@ public class UrlService {
         return urlMapper.toDto(url);
     }
 
-    public String getOriginalUrl(String shortCode) {
+    public String getOriginalUrl(String shortCode, HttpServletRequest request) {
 
         String redisUrl = redisService.get(shortCode);
 
+        String ipAddress = request.getRemoteAddr();
+        String userAgent = request.getHeader("User-Agent");
+
         if(redisUrl != null) {
-            clickEventProducer.publish(shortCode);
+            clickEventProducer.publish(shortCode, ipAddress, userAgent);
 
             return redisUrl;
         }
@@ -77,7 +84,7 @@ public class UrlService {
 
         redisService.save(shortCode, originalUrl);
 
-        clickEventProducer.publish(shortCode);
+        clickEventProducer.publish(shortCode, ipAddress, userAgent);
 
         return originalUrl;
     }
@@ -93,6 +100,32 @@ public class UrlService {
                 .clickCount(url.getClickCount())
                 .createdAt(url.getCreatedAt())
                 .lastAccessedAt(url.getLastAccessedAt())
+                .build();
+    }
+
+    public VisitorAnalyticsResponse getVisitorAnalytics(String shortCode) {
+
+        Url url = urlRepository.findByShortCode(shortCode)
+                .orElseThrow(() -> new ResourceNotFoundException("URL not found!!"));
+
+        long uniqueVisitors = clickAnalyticsRepository.countDistinctIpAddressByShortCode(shortCode);
+
+        List<ClickAnalytics> clicks = clickAnalyticsRepository.findTop10ByShortCodeOrderByClickedAtDesc(shortCode);
+
+        List<VisitorDto> recentVisitors = clicks.stream()
+                .map(click -> VisitorDto.builder()
+                        .ipAddress(click.getIpAddress())
+                        .userAgent(click.getUserAgent())
+                        .clickedAt(click.getClickedAt())
+                        .build()
+                )
+                .toList();
+
+        return VisitorAnalyticsResponse.builder()
+                .shortCode(shortCode)
+                .totalClicks(url.getClickCount())
+                .uniqueVisitors(uniqueVisitors)
+                .recentVisitors(recentVisitors)
                 .build();
     }
 }

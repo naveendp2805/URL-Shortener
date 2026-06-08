@@ -1,17 +1,15 @@
-package com.naveen.urlshortener.event;
+package com.naveen.urlshortener.dto;
 
 import lombok.*;
 
 import java.time.LocalDateTime;
 
-@AllArgsConstructor
 @Getter
 @Setter
-@NoArgsConstructor
 @Builder
-public class ClickEvent {
-
-    private String shortCode;
+@AllArgsConstructor
+@NoArgsConstructor
+public class VisitorDto {
 
     private String ipAddress;
 

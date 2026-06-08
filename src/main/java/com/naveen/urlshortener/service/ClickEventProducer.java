@@ -16,11 +16,16 @@ public class ClickEventProducer {
 
     private final KafkaTemplate<String, ClickEvent> kafkaTemplate;
 
-    public void publish(String shortCode) {
+    public void publish(String shortCode, String ipAddress, String userAgent) {
 
         log.info("Publishing click event for {}", shortCode);
 
-        ClickEvent event = new ClickEvent(shortCode, LocalDateTime.now());
+        ClickEvent event = ClickEvent.builder()
+                .shortCode(shortCode)
+                .ipAddress(ipAddress)
+                .userAgent(userAgent)
+                .clickedAt(LocalDateTime.now())
+                .build();
 
         kafkaTemplate.send(KafkaTopics.CLICK_EVENTS, shortCode, event);
     }

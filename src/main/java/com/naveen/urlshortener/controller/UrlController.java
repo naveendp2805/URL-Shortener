@@ -3,7 +3,9 @@ package com.naveen.urlshortener.controller;
 import com.naveen.urlshortener.dto.ClickAnalyticsResponse;
 import com.naveen.urlshortener.dto.CreateShortUrlRequest;
 import com.naveen.urlshortener.dto.ShortUrlResponse;
+import com.naveen.urlshortener.dto.VisitorAnalyticsResponse;
 import com.naveen.urlshortener.service.UrlService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.apache.tomcat.Jar;
 import org.springframework.http.HttpHeaders;
@@ -25,9 +27,10 @@ public class UrlController {
     }
 
     @GetMapping("/{shortCode}")
-    public ResponseEntity<Void> getOriginalUrl(@PathVariable String shortCode) {
+    public ResponseEntity<Void> redirect(@PathVariable String shortCode,
+                                         HttpServletRequest request) {
 
-        String originalUrl = urlService.getOriginalUrl(shortCode);
+        String originalUrl = urlService.getOriginalUrl(shortCode, request);
 
         HttpHeaders httpHeaders = new HttpHeaders();
 
@@ -42,5 +45,10 @@ public class UrlController {
     @GetMapping("/{shortCode}/analytics")
     public ResponseEntity<ClickAnalyticsResponse> getAnalytics(@PathVariable String shortCode) {
         return ResponseEntity.ok(urlService.getAnalytics(shortCode));
+    }
+
+    @GetMapping("/{shortCode}/visitor-analytics")
+    public ResponseEntity<VisitorAnalyticsResponse> getVisitorAnalytics(@PathVariable String shortCode) {
+        return ResponseEntity.ok(urlService.getVisitorAnalytics(shortCode));
     }
 }
