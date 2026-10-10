@@ -20,8 +20,7 @@ spring:
 
   data:
     redis:
-      port: ${REDIS_PORT}
-      host: ${REDIS_HOST}
+      url: ${REDIS_URL}
 
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
